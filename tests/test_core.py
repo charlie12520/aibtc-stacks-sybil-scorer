@@ -61,6 +61,35 @@ class SybilScorerTests(unittest.TestCase):
         self.assertGreater(seed_signal["points"], 0)
         self.assertIn("shares", seed_signal["reason"])
 
+    def test_identity_nft_batch_timing_is_explainable(self) -> None:
+        first = {
+            **DEMO_FACTS[0],
+            "address": "SPIDENTITYBATCH0000000000000000000000001",
+            "identity_nft_blocks": [9000000],
+        }
+        second = {
+            **DEMO_FACTS[1],
+            "address": "SPIDENTITYBATCH0000000000000000000000002",
+            "identity_nft_blocks": [9000007],
+            "nft_identity": True,
+        }
+        third = {
+            **DEMO_FACTS[1],
+            "address": "SPIDENTITYBATCH0000000000000000000000003",
+            "identity_nft_blocks": [9000009],
+            "nft_identity": True,
+        }
+
+        report = score_addresses([], offline_facts=[first, second, third])
+        signal = [
+            signal
+            for signal in report["results"][0]["signals"]
+            if signal["name"] == "identity_mint_batch"
+        ][0]
+
+        self.assertEqual(signal["points"], 8)
+        self.assertIn("10-block window", signal["reason"])
+
     def test_global_registry_batch_timing_counts_single_address_waves(self) -> None:
         fact = {
             "agent": {

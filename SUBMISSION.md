@@ -39,11 +39,14 @@ python -m py_compile stacks_sybil_scorer/*.py tests/*.py
 
 Expected:
 
-- Unit tests pass. Current local run: 6 tests passed.
+- Unit tests pass. Current local run: 7 tests passed.
 - Demo returns two likely-clean fixtures and two high-risk/watchlist fixtures.
 - No private data, API keys, paid endpoints, or black-box ML.
 - Live smoke: a new Level 1 agent with no chain activity scores high risk, while
   an established Genesis-level address scores likely clean.
+
+Update after first submission: added Agent Identity v2 NFT mint-block batch
+timing as an explicit signal and test case.
 
 ## Trust Model
 

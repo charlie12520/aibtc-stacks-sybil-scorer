@@ -12,6 +12,7 @@ DEMO_FACTS = [
         "stx_balance_micro": 24000000,
         "ft_count": 2,
         "nft_identity": True,
+        "identity_nft_blocks": [7641161],
         "agent": {
             "level": 3,
             "levelName": "On-Chain Identity",
@@ -33,6 +34,7 @@ DEMO_FACTS = [
         "stx_balance_micro": 5000000,
         "ft_count": 1,
         "nft_identity": False,
+        "identity_nft_blocks": [],
         "agent": {
             "level": 2,
             "levelName": "Genesis",
@@ -54,6 +56,7 @@ DEMO_FACTS = [
         "stx_balance_micro": 0,
         "ft_count": 0,
         "nft_identity": False,
+        "identity_nft_blocks": [],
         "agent": {
             "level": 1,
             "levelName": "Verified Agent",
@@ -75,6 +78,7 @@ DEMO_FACTS = [
         "stx_balance_micro": 1000,
         "ft_count": 0,
         "nft_identity": False,
+        "identity_nft_blocks": [],
         "agent": {
             "level": 1,
             "levelName": "Verified Agent",

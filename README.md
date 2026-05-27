@@ -17,6 +17,7 @@ The scorer combines these public signals:
 - likely first funding source and shared funding source inside a scored batch
 - AIBTC registration level, BTC link, verified time, and last active time
 - Agent Identity v2 NFT / ERC-8004 identity evidence when visible
+- Agent Identity v2 mint-block clustering inside the scored/seed set
 - AIBTC inbox sent/received counts and paid inbox economics
 - BTC anchor activity for the linked Bitcoin address
 - optional seed-cluster distance/overlap
@@ -78,8 +79,8 @@ python -m py_compile stacks_sybil_scorer/*.py tests/*.py
 ```
 
 The bundled tests cover clean/risky fixture classification, JSON
-explainability, shared funding-source clustering, seed-cluster overlap, and
-registry-wide verification-batch timing.
+explainability, shared funding-source clustering, seed-cluster overlap, Identity
+v2 mint-batch timing, and registry-wide verification-batch timing.
 
 ## Cost
 

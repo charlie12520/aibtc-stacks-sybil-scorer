@@ -126,6 +126,7 @@ def collect_facts(address: str, client: PublicApiClient, agent_index: dict[str, 
         "stx_balance_micro": 0,
         "ft_count": 0,
         "nft_identity": False,
+        "identity_nft_blocks": [],
         "agent": agent_index.get(address),
         "verify": {},
         "inbox": {},
@@ -153,9 +154,16 @@ def collect_facts(address: str, client: PublicApiClient, agent_index: dict[str, 
     if error:
         errors.append(error)
     else:
-        facts["nft_identity"] = any(
-            IDENTITY_REGISTRY in str(item.get("asset_identifier", ""))
+        identity_items = [
+            item
             for item in nft_holdings.get("results", [])
+            if IDENTITY_REGISTRY in str(item.get("asset_identifier", ""))
+        ]
+        facts["nft_identity"] = bool(identity_items)
+        facts["identity_nft_blocks"] = sorted(
+            int(item.get("block_height"))
+            for item in identity_items
+            if item.get("block_height") is not None
         )
 
     agent = facts.get("agent") or {}
@@ -298,6 +306,7 @@ def build_cohort(
     funding_counts: dict[str, int] = {}
     verified_minutes: dict[str, int] = {}
     registry_verified_minutes: dict[str, int] = {}
+    identity_nft_blocks: list[int] = []
     seed_set = set(seeds)
     for fact in facts:
         funder = fact.get("funding_source")
@@ -306,6 +315,7 @@ def build_cohort(
         minute = minute_bucket((fact.get("agent") or {}).get("verifiedAt"))
         if minute:
             verified_minutes[minute] = verified_minutes.get(minute, 0) + 1
+        identity_nft_blocks.extend(int(block) for block in fact.get("identity_nft_blocks") or [])
     for agent in registry_agents or []:
         minute = minute_bucket(agent.get("verifiedAt"))
         if minute:
@@ -314,6 +324,7 @@ def build_cohort(
         "funding_counts": funding_counts,
         "verified_minutes": verified_minutes,
         "registry_verified_minutes": registry_verified_minutes,
+        "identity_nft_blocks": identity_nft_blocks,
         "seed_set": seed_set,
         "seed_funders": {
             fact.get("funding_source")
@@ -340,6 +351,7 @@ def score_one(fact: dict[str, Any], cohort: dict[str, Any], now: dt.datetime) ->
         wallet_age_signal(fact, now),
         activity_signal(fact),
         identity_signal(fact),
+        identity_batch_signal(fact, cohort),
         economic_signal(fact),
         diversity_signal(fact),
         inbox_signal(fact, now),
@@ -407,6 +419,29 @@ def identity_signal(fact: dict[str, Any]) -> Signal:
     if level == 1:
         return Signal("agent_identity", 8, 14, "address is only a Level 1 verified agent")
     return Signal("agent_identity", 14, 14, "address was not found in the AIBTC agent registry")
+
+
+def identity_batch_signal(fact: dict[str, Any], cohort: dict[str, Any]) -> Signal:
+    blocks = [int(block) for block in fact.get("identity_nft_blocks") or []]
+    if not blocks:
+        return Signal("identity_mint_batch", 0, 8, "no Agent Identity v2 NFT mint block visible")
+
+    cohort_blocks = [int(block) for block in cohort.get("identity_nft_blocks", [])]
+    largest_nearby_group = 0
+    for block in blocks:
+        nearby = sum(1 for other in cohort_blocks if abs(other - block) <= 10)
+        largest_nearby_group = max(largest_nearby_group, nearby)
+
+    if largest_nearby_group >= 3:
+        return Signal(
+            "identity_mint_batch",
+            8,
+            8,
+            f"{largest_nearby_group} scored/seed identities minted within a 10-block window",
+        )
+    if largest_nearby_group == 2:
+        return Signal("identity_mint_batch", 4, 8, "two scored/seed identities minted within a 10-block window")
+    return Signal("identity_mint_batch", 0, 8, "identity mint block is not batched in the scored/seed set")
 
 
 def economic_signal(fact: dict[str, Any]) -> Signal:
@@ -532,6 +567,7 @@ def public_fact_summary(fact: dict[str, Any]) -> dict[str, Any]:
         "stx_balance_micro": fact.get("stx_balance_micro", 0),
         "fungible_token_count": fact.get("ft_count", 0),
         "has_identity_nft": bool(fact.get("nft_identity")),
+        "identity_nft_blocks": fact.get("identity_nft_blocks") or [],
         "agent_level": agent.get("level"),
         "agent_level_name": agent.get("levelName"),
         "agent_btc_address": agent.get("btcAddress"),
